@@ -53,9 +53,16 @@ export class FileController {
     // Aguarda o término do processamento antes de prosseguir
     await new Promise((resolve) => parser.on('end', resolve));
 
-    // Salva os dados processados no repositório (FileRepository)
-    await this.fileRepository.saveDataWorksheet(results);
+    //valida se o formato do arquivo é .xlslx ou .csv
+    const allowedMimeTypes = [
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'text/csv',
+    ];
+    if (!allowedMimeTypes.includes(file.mimetype)) {
+      return { error: 'Formato de arquivo inválido' };
+    }
 
+    await this.fileRepository.saveDataWorksheet(results);
     // Retorna os resultados do processamento
     return { results };
   }
