@@ -1,10 +1,7 @@
 import { Module } from '@nestjs/common';
-import { FileController } from './file/file.controller';
-import { CsvModule } from 'nest-csv-parser';
+import { FileModule } from './file/file.module';
 
 @Module({
-  imports: [CsvModule],
-  controllers: [FileController],
-  providers: [],
+  imports: [FileModule],
 })
 export class AppModule {}
