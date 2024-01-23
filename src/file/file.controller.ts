@@ -12,7 +12,8 @@ export class FileController {
   @Post('/file-upload')
   @UseInterceptors(FileInterceptor('file'))
   async fileUpload(@UploadedFile() file: Express.Multer.File) {
-    console.log(file);
-    return { message: 'Upload de arquivo realizado com sucesso!' };
+    const bufferString = file.buffer.toString('utf-8');
+
+    return { bufferString };
   }
 }

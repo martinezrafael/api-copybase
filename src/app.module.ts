@@ -1,8 +1,9 @@
 import { Module } from '@nestjs/common';
 import { FileController } from './file/file.controller';
+import { CsvModule } from 'nest-csv-parser';
 
 @Module({
-  imports: [],
+  imports: [CsvModule],
   controllers: [FileController],
   providers: [],
 })
