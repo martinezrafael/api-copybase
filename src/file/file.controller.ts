@@ -1,4 +1,3 @@
-// Importações necessárias do Nest.js e de outras bibliotecas
 import {
   Controller,
   Post,
@@ -14,34 +13,32 @@ import { FileRepository } from './file.repository';
 import { ApiBody, ApiConsumes } from '@nestjs/swagger';
 import * as csvParser from 'csv-parser';
 import { CreateFileDTO } from './dto/createFile.dto';
+import { FileEntity } from './file.entity';
+import { v4 as uuid } from 'uuid';
 
-// Controlador para manipulação de arquivos
 @Controller('/api/v1')
 @UsePipes(new ValidationPipe())
 export class FileController {
-  // Injeção de dependência do FileRepository
   constructor(private fileRepository: FileRepository) {}
 
-  // Método para lidar com o upload de arquivos
   @Post('/file-upload')
-  @UseInterceptors(FileInterceptor('file')) // Usando interceptor de arquivo para processar uploads
-  @ApiConsumes('multipart/form-data') // Configuração do Swagger para consumo de multipart/form-data
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiConsumes('multipart/form-data')
   @ApiBody({
     description: 'Dados do Arquivo',
-    type: CreateFileDTO, // Utilizando DTO para definir a estrutura dos dados do arquivo
+    type: CreateFileDTO,
   })
   async fileUpload(@UploadedFile() file: Express.Multer.File) {
+    //Se não tiver um arquivo, retorna um erro
     if (!file) {
       return { error: 'Nenhum arquivo enviado' };
     }
-    // Criação de um objeto DTO e atribuição do arquivo recebido
+
     const createFileDto = new CreateFileDTO();
     createFileDto.file = file;
 
-    // Conversão do buffer do arquivo para uma string
     const bufferString = file.buffer.toString('utf-8');
 
-    // Processamento do arquivo CSV usando a biblioteca csv-parser
     const results = [];
     const parser = csvParser();
     parser.write(bufferString);
@@ -50,10 +47,9 @@ export class FileController {
       results.push(data);
     });
 
-    // Aguarda o término do processamento antes de prosseguir
     await new Promise((resolve) => parser.on('end', resolve));
 
-    //valida se o formato do arquivo é .xlslx ou .csv
+    //valida se o formato do arquivo é .xlsx ou .csv
     const allowedMimeTypes = [
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       'text/csv',
@@ -62,12 +58,29 @@ export class FileController {
       return { error: 'Formato de arquivo inválido' };
     }
 
-    await this.fileRepository.saveDataWorksheet(results);
-    // Retorna os resultados do processamento
-    return { results };
+    const fileEntities = results.map((result) => {
+      const fileEntity = new FileEntity();
+      fileEntity.id = uuid();
+      fileEntity.quantidade_cobrancas = fileEntity.quantidade_cobrancas =
+        result['quantidade cobranças'];
+      fileEntity.cobrada_a_cada_x_dias = result['cobrada a cada X dias'];
+      fileEntity.data_inicio = result['data início'];
+      fileEntity.status = result['status'];
+      fileEntity.data_status = result['data status'];
+      fileEntity.data_cancelamento = result['data cancelamento'];
+      fileEntity.valor = result['valor'];
+      fileEntity.proximo_ciclo = result['próximo ciclo'];
+      fileEntity.id_assinante = result['ID assinante'];
+
+      return fileEntity;
+    });
+
+    for (const fileEntity of fileEntities) {
+      await this.fileRepository.saveDataWorksheet(fileEntity);
+    }
+    return { message: 'Upload de arquivo realizado com sucesso!' };
   }
 
-  // Método para listar dados previamente salvos
   @Get('/list-data')
   async listData() {
     return this.fileRepository.listDataWorksheet();
