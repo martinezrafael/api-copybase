@@ -15,6 +15,7 @@ import * as csvParser from 'csv-parser';
 import { CreateFileDTO } from './dto/createFile.dto';
 import { FileEntity } from './file.entity';
 import { v4 as uuid } from 'uuid';
+import { ListFileDto } from './dto/listFile.dto';
 
 @Controller('/api/v1')
 @UsePipes(new ValidationPipe())
@@ -29,7 +30,6 @@ export class FileController {
     type: CreateFileDTO,
   })
   async fileUpload(@UploadedFile() file: Express.Multer.File) {
-    //Se não tiver um arquivo, retorna um erro
     if (!file) {
       return { error: 'Nenhum arquivo enviado' };
     }
@@ -49,7 +49,6 @@ export class FileController {
 
     await new Promise((resolve) => parser.on('end', resolve));
 
-    //valida se o formato do arquivo é .xlsx ou .csv
     const allowedMimeTypes = [
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       'text/csv',
@@ -83,6 +82,22 @@ export class FileController {
 
   @Get('/list-data')
   async listData() {
-    return this.fileRepository.listDataWorksheet();
+    const filedSaved = await this.fileRepository.listDataWorksheet();
+    const fileList = filedSaved.map(
+      (file) =>
+        new ListFileDto(
+          file.id,
+          file.quantidade_cobrancas,
+          file.cobrada_a_cada_x_dias,
+          file.data_inicio,
+          file.status,
+          file.data_status,
+          file.data_cancelamento,
+          file.valor,
+          file.proximo_ciclo,
+          file.id_assinante,
+        ),
+    );
+    return fileList;
   }
 }
